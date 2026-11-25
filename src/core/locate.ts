@@ -38,6 +38,10 @@ export interface LocateOverrides {
   readonly position?: GetPosition;
 }
 
+export interface Locator {
+  readonly locate: (overrides?: LocateOverrides) => Promise<Result<ResolvedLocation, LocationError>>;
+}
+
 interface ResolveParams {
   readonly reverse: ReverseResult;
   readonly choice: LevelChoice;
@@ -133,7 +137,7 @@ const toResolved = ({
   });
 };
 
-export const createLocator = (config: LocatorConfig) => {
+export const createLocator = (config: LocatorConfig): Locator => {
   const now = config.now ?? (() => Date.now());
   const timeout = config.timeout ?? DEFAULT_TIMEOUT;
   const maxAge = config.maxAge ?? DEFAULT_MAX_AGE;

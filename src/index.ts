@@ -4,6 +4,7 @@ import { browserGetPosition } from './platform/browser-position';
 import type { GetPosition, ReverseAdapter } from './types';
 
 export { bigDataCloud, type BigDataCloudConfig } from './adapters/bigdatacloud';
+export { geoapify, type GeoapifyConfig } from './adapters/geoapify';
 export {
   createLocator,
   type IpFallbackConfig,

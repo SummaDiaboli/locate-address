@@ -1,4 +1,4 @@
-import { bigDataCloud, createDefaultLocator, createLocator, LEVELS } from '../src/index';
+import { bigDataCloud, createDefaultLocator, createLocator, geoapify, LEVELS } from '../src/index';
 import type { GetPosition, RawPosition } from '../src/types';
 
 const raw: RawPosition = {
@@ -25,6 +25,7 @@ describe('public API', () => {
     expect(typeof createLocator).toBe('function');
     expect(typeof createDefaultLocator).toBe('function');
     expect(bigDataCloud().id).toBe('bigdatacloud');
+    expect(geoapify({ apiKey: 'test-key' }).id).toBe('geoapify');
     expect(LEVELS).toContain('city');
   });
 

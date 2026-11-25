@@ -79,6 +79,8 @@ const locator = createDefaultLocator({ level: 'street' });
 
 A request can be downgraded when the adapter lacks support or the GPS fix is too coarse. Downgrades are reported in `warnings` and lower `confidence` to `medium`.
 
+When an adapter returns `confidenceScore`, scores below `0.5` lower confidence to `low` and scores below `0.8` lower it to `medium`. When it returns `distanceMeters`, a match beyond the selected level's accuracy gate lowers confidence to `medium`, and a match beyond twice that gate lowers it to `low`. IP results always remain `low`.
+
 | Level | Max accuracy |
 | --- | --- |
 | `country`, `region` | no limit |

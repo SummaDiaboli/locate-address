@@ -11,6 +11,7 @@ import {
   type ReverseResult,
 } from '../types';
 import { chooseLevel, type LevelChoice } from './choose-level';
+import { assessConfidence } from './confidence';
 import { validateFix } from './validate-fix';
 
 const DEFAULT_TIMEOUT = 8_000;
@@ -125,12 +126,16 @@ const toResolved = ({
   }
 
   const deeperThanDelivered = rank(reverse.actualLevel) < rank(choice.level);
-  const finalWarnings = [
+  const preliminaryWarnings = [
     ...warnings,
     ...(deeperThanDelivered ? [`Requested level '${choice.level}' was not available`] : []),
   ];
-  const confidence: 'high' | 'medium' | 'low' =
-    source === 'ip' ? 'low' : finalWarnings.length === 0 ? 'high' : 'medium';
+  const assessed = assessConfidence({
+    source,
+    warnings: preliminaryWarnings,
+    reverse,
+    level: choice.level,
+  });
 
   return ok({
     lat: coordinates.lat,
@@ -140,8 +145,8 @@ const toResolved = ({
     source,
     requestedLevel: choice.level,
     ...reverse,
-    confidence,
-    warnings: finalWarnings,
+    confidence: assessed.confidence,
+    warnings: assessed.warnings,
   });
 };
 

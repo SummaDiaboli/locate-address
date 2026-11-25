@@ -223,6 +223,53 @@ describe('locate', () => {
     });
   });
 
+  it('uses low provider confidence scores in the final result', async () => {
+    const adapter = fakeAdapter({
+      reverse: async () => ok({ ...gpsResult, confidenceScore: 0.2 }),
+    });
+    const { locator } = setup({ adapter });
+
+    const result = await locator.locate();
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        confidence: 'low',
+        warnings: expect.arrayContaining([expect.stringContaining('confidence is low')]),
+      },
+    });
+  });
+
+  it('uses provider match distance in the final result', async () => {
+    const adapter = fakeAdapter({
+      reverse: async () => ok({ ...gpsResult, actualLevel: 'city', distanceMeters: 6_000 }),
+    });
+    const { locator } = setup({ adapter });
+
+    const result = await locator.locate();
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        confidence: 'medium',
+        warnings: expect.arrayContaining([expect.stringContaining('6000m')]),
+      },
+    });
+  });
+
+  it('keeps IP fallback confidence low even with strong provider metadata', async () => {
+    const adapter = fakeAdapter({
+      reverseIp: async () => ok({ ...ipResult, confidenceScore: 0.99, distanceMeters: 0 }),
+    });
+    const { locator } = setup({ adapter });
+
+    const result = await locator.locate({
+      position: async () => { throw { code: 1 }; },
+    });
+
+    expect(result).toMatchObject({ ok: true, value: { source: 'ip', confidence: 'low' } });
+  });
+
   it('forwards the abort signal to both geolocation and the adapter', async () => {
     const { adapter, getPosition, locator } = setup();
     const controller = new AbortController();

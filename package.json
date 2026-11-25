@@ -16,6 +16,14 @@
     "./dom": {
       "types": "./dist/dom/index.d.ts",
       "import": "./dist/dom/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
     }
   },
   "files": [
@@ -31,11 +39,29 @@
     "test:coverage": "vitest run --coverage",
     "prepublishOnly": "npm run build && npm test"
   },
+  "peerDependencies": {
+    "react": ">=18",
+    "vue": ">=3"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.3.1",
+    "@types/react-dom": "^19.3.0",
     "@vitest/coverage-v8": "^5.1.1",
     "fast-check": "^4.11.0",
     "jsdom": "^29.1.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.1.1"
+    "vitest": "^5.1.1",
+    "vue": "^3.5.46"
   }
 }

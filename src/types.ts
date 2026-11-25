@@ -41,6 +41,17 @@ export interface ReverseRequest {
   readonly signal?: AbortSignal;
 }
 
+export interface RawAddress {
+  readonly countryCode?: string | null | undefined;
+  readonly countryName?: string | null | undefined;
+  readonly region?: string | null | undefined;
+  readonly city?: string | null | undefined;
+  readonly locality?: string | null | undefined;
+  readonly postcode?: string | null | undefined;
+  readonly street?: string | null | undefined;
+  readonly building?: string | null | undefined;
+}
+
 export interface ReverseResult {
   readonly fields: AddressFields;
   readonly actualLevel: Level;
@@ -53,6 +64,7 @@ export interface ReverseAdapter {
   readonly maxLevel: Level;
   readonly supports: readonly Level[];
   readonly reverse: (request: ReverseRequest) => Promise<Result<ReverseResult, LocationError>>;
+  readonly reverseIp?: (request: { readonly signal?: AbortSignal }) => Promise<Result<ReverseResult, LocationError>>;
 }
 
 export interface ResolvedLocation extends ReverseResult {

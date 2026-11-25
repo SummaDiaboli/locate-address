@@ -98,12 +98,33 @@ describe('bigDataCloud adapter', () => {
     });
   });
 
-  it('rejects an empty response', async () => {
-    const adapter = bigDataCloud({ fetch: async () => response(200, {}) });
+  it('rejects empty and non-object responses', async () => {
+    for (const body of [{}, null, 'unexpected']) {
+      const adapter = bigDataCloud({ fetch: async () => response(200, body) });
 
-    expect(await adapter.reverse({ lat: 1, lon: 1, level: 'city' })).toEqual({
-      ok: false,
-      error: { code: 'EMPTY_RESPONSE', message: 'No address information was returned' },
+      expect(await adapter.reverse({ lat: 1, lon: 1, level: 'city' })).toEqual({
+        ok: false,
+        error: { code: 'EMPTY_RESPONSE', message: 'No address information was returned' },
+      });
+    }
+  });
+
+  it('omits coordinates from the IP result when they are missing or invalid', async () => {
+    const withoutCoordinates = bigDataCloud({ fetch: async () => response(200, payload) });
+    const withInvalidCoordinates = bigDataCloud({
+      fetch: async () => response(200, { ...payload, latitude: Number.NaN, longitude: 12 }),
     });
+
+    const first = await withoutCoordinates.reverseIp?.({});
+    const second = await withInvalidCoordinates.reverseIp?.({});
+
+    expect(first?.ok).toBe(true);
+    expect(second?.ok).toBe(true);
+    if (first?.ok === true) {
+      expect(first.value.position).toBeUndefined();
+    }
+    if (second?.ok === true) {
+      expect(second.value.position).toBeUndefined();
+    }
   });
 });

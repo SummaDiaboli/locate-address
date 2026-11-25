@@ -151,4 +151,42 @@ describe('bind', () => {
 
     expect(locator.locate).not.toHaveBeenCalled();
   });
+
+  it('handles textareas and select fields', async () => {
+    const street = document.createElement('textarea');
+    street.name = 'street';
+    const country = document.createElement('select');
+    country.name = 'country';
+    country.append(new Option('', ''), new Option('Germany', 'DE'));
+    document.body.append(street, country);
+    const button = document.createElement('button');
+
+    await bind(button, locatorWith(result), {
+      street: '[name="street"]',
+      countryCode: '[name="country"]',
+    }, { overwrite: 'always' }).trigger();
+
+    expect(street.value).toBe('');
+    expect(country.value).toBe('DE');
+  });
+
+  it('ignores disabled textareas and selects', async () => {
+    const street = document.createElement('textarea');
+    street.name = 'street';
+    street.disabled = true;
+    const country = document.createElement('select');
+    country.name = 'country';
+    country.disabled = true;
+    country.append(new Option('', ''), new Option('Germany', 'DE'));
+    document.body.append(street, country);
+    const button = document.createElement('button');
+
+    await bind(button, locatorWith(result), {
+      street: '[name="street"]',
+      countryCode: '[name="country"]',
+    }, { overwrite: 'always' }).trigger();
+
+    expect(street.value).toBe('');
+    expect(country.value).toBe('');
+  });
 });

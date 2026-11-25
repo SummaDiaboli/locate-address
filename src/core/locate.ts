@@ -58,7 +58,15 @@ const shallower = (left: Level, right: Level): Level =>
 
 const positionError = (error: unknown): LocationError => {
   if (typeof error === 'object' && error !== null && 'code' in error) {
-    const code = (error as { readonly code: unknown }).code;
+    const { code } = error as { readonly code: unknown };
+
+    if (code === 'ABORTED') {
+      return { code: 'ABORTED', message: 'Location request was aborted' };
+    }
+
+    if (code === 'GEOLOCATION_UNAVAILABLE') {
+      return { code: 'GEOLOCATION_UNAVAILABLE', message: 'Geolocation is not available' };
+    }
 
     if (code === 1) {
       return { code: 'PERMISSION_DENIED', message: 'Location permission was denied' };
@@ -197,7 +205,10 @@ export const createLocator = (config: LocatorConfig): Locator => {
       gpsWarnings = [`${gpsError.code}: ${gpsError.message}; using IP fallback`];
     }
 
-    if (!fallback.enabled || config.adapter.reverseIp === undefined) {
+    const terminalError =
+      gpsError?.code === 'ABORTED' || gpsError?.code === 'GEOLOCATION_UNAVAILABLE';
+
+    if (!fallback.enabled || terminalError || config.adapter.reverseIp === undefined) {
       return err(gpsError ?? { code: 'POSITION_UNAVAILABLE', message: 'No position was available' });
     }
 

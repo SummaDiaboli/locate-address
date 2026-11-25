@@ -141,6 +141,34 @@ describe('locate', () => {
     });
   });
 
+  it('does not fall back for aborted requests', async () => {
+    const { adapter, locator } = setup({
+      position: async () => { throw { code: 'ABORTED', message: 'Location request was aborted' }; },
+    });
+    const reverseIp = vi.spyOn(adapter as Required<ReverseAdapter>, 'reverseIp');
+
+    expect(await locator.locate()).toEqual({
+      ok: false,
+      error: { code: 'ABORTED', message: 'Location request was aborted' },
+    });
+    expect(reverseIp).not.toHaveBeenCalled();
+  });
+
+  it('does not fall back when geolocation is unavailable', async () => {
+    const { adapter, locator } = setup({
+      position: async () => {
+        throw { code: 'GEOLOCATION_UNAVAILABLE', message: 'Geolocation is not available' };
+      },
+    });
+    const reverseIp = vi.spyOn(adapter as Required<ReverseAdapter>, 'reverseIp');
+
+    expect(await locator.locate()).toEqual({
+      ok: false,
+      error: { code: 'GEOLOCATION_UNAVAILABLE', message: 'Geolocation is not available' },
+    });
+    expect(reverseIp).not.toHaveBeenCalled();
+  });
+
   it('returns the IP error when both paths fail', async () => {
     const adapter = fakeAdapter({
       reverse: async () => err({ code: 'GPS_FAILED', message: 'gps failed' }),

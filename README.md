@@ -117,6 +117,8 @@ const locator = createDefaultLocator({
 - Must be called from the browser for the current visitor. Do not proxy it through a server; the free endpoint can return HTTP 402 for server-side or non-visitor usage.
 - Subject to BigDataCloud fair use.
 
+Both built-in adapters accept `timeout` (default `8_000` ms), `retries` (default `1`), `retryDelay`, `ipCacheTtl` (default `300_000` ms), and `now` for testing. Retries apply only to HTTP `429` and `5xx` responses and respect `Retry-After` when present. Successful IP lookups are cached per adapter instance; errors are never cached.
+
 ### Geoapify (keyed)
 
 ```ts

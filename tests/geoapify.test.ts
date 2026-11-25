@@ -306,6 +306,66 @@ describe('geoapify adapter', () => {
     });
   });
 
+  it('reuses recent IP results', async () => {
+    let current = 1_000;
+    const fetchMock = vi.fn(async () => response(200, ipBody));
+    const adapter = createAdapter({
+      fetch: fetchMock,
+      ipCacheTtl: 100,
+      now: () => current,
+    });
+
+    await adapter.reverseIp?.({});
+    await adapter.reverseIp?.({});
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    current = 1_100;
+    await adapter.reverseIp?.({});
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('times out slow requests', async () => {
+    const adapter = createAdapter({
+      fetch: vi.fn(() => new Promise<Response>(() => undefined)),
+      timeout: 5,
+    });
+
+    expect(await adapter.reverse({ lat: 1, lon: 1, level: 'city' })).toEqual({
+      ok: false,
+      error: { code: 'PROVIDER_TIMEOUT', message: 'Reverse geocoding request timed out' },
+    });
+  });
+
+  it('retries rate-limited requests', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(response(429))
+      .mockResolvedValueOnce(response(200));
+    const adapter = createAdapter({ fetch: fetchMock, retries: 1, retryDelay: () => 0 });
+
+    expect(await adapter.reverse({ lat: 1, lon: 1, level: 'city' })).toMatchObject({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('maps aborted requests', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn(
+      (_url: unknown, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        }),
+    );
+    const adapter = createAdapter({ fetch: fetchMock });
+    const pending = adapter.reverse({ lat: 1, lon: 1, level: 'city', signal: controller.signal });
+
+    controller.abort();
+
+    expect(await pending).toEqual({
+      ok: false,
+      error: { code: 'ABORTED', message: 'Request was aborted' },
+    });
+  });
+
   it('rejects non-object IP responses', async () => {
     const adapter = createAdapter({ fetch: async () => response(200, 'unexpected') });
 

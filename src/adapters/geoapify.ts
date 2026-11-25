@@ -1,3 +1,5 @@
+import { requestJson, type HttpRequestOptions } from '../core/http-request';
+import { cacheResult } from '../core/ip-cache';
 import { normalizeAddress } from '../core/normalize-address';
 import { err, ok, type Result } from '../result';
 import {
@@ -12,6 +14,11 @@ import {
 
 const REVERSE_ENDPOINT = 'https://api.geoapify.com/v1/geocode/reverse';
 const IP_ENDPOINT = 'https://api.geoapify.com/v1/ipinfo';
+const DEFAULT_TIMEOUT = 8_000;
+const DEFAULT_RETRIES = 1;
+const DEFAULT_IP_CACHE_TTL = 300_000;
+
+type Operation = 'reverse' | 'ip';
 
 export interface GeoapifyConfig {
   readonly apiKey: string;
@@ -19,12 +26,11 @@ export interface GeoapifyConfig {
   readonly endpoint?: string;
   readonly ipEndpoint?: string;
   readonly language?: string;
-}
-
-interface RequestParams {
-  readonly url: URL;
-  readonly signal: AbortSignal | undefined;
-  readonly operation: 'reverse' | 'ip';
+  readonly timeout?: number;
+  readonly retries?: number;
+  readonly retryDelay?: HttpRequestOptions['retryDelay'];
+  readonly ipCacheTtl?: number;
+  readonly now?: () => number;
 }
 
 const TYPE_FOR_LEVEL: Readonly<Record<Level, string>> = {
@@ -78,7 +84,7 @@ const shallowest = (left: Level, right: Level): Level =>
 const levelForResult = (value: unknown, requested: Level): Level =>
   typeof value === 'string' ? LEVEL_FOR_RESULT_TYPE[value] ?? requested : requested;
 
-const httpError = (status: number, operation: RequestParams['operation']): LocationError => {
+const httpError = (status: number, operation: Operation): LocationError => {
   if (status === 401) {
     return { code: 'PROVIDER_INVALID_KEY', message: 'Geoapify API key is invalid' };
   }
@@ -92,38 +98,6 @@ const httpError = (status: number, operation: RequestParams['operation']): Locat
     : { code: `PROVIDER_HTTP_${status}`, message: `Geoapify returned HTTP ${status}` };
 };
 
-const requestJson = async (
-  fetchImpl: typeof globalThis.fetch,
-  { url, signal, operation }: RequestParams,
-): Promise<Result<unknown, LocationError>> => {
-  let response: Response;
-
-  try {
-    response = await fetchImpl(url.toString(), signal === undefined ? {} : { signal });
-  } catch {
-    return {
-      ok: false,
-      error: {
-        code: 'PROVIDER_UNAVAILABLE',
-        message: operation === 'ip' ? 'IP lookup request failed' : 'Reverse geocoding request failed',
-      },
-    };
-  }
-
-  if (!response.ok) {
-    return err(httpError(response.status, operation));
-  }
-
-  try {
-    return ok(await response.json());
-  } catch {
-    return err({
-      code: 'PROVIDER_BAD_RESPONSE',
-      message: operation === 'ip' ? 'IP lookup returned invalid JSON' : 'Reverse geocoding returned invalid JSON',
-    });
-  }
-};
-
 export const geoapify = (config: GeoapifyConfig): ReverseAdapter => {
   const key = config.apiKey.trim();
 
@@ -135,6 +109,31 @@ export const geoapify = (config: GeoapifyConfig): ReverseAdapter => {
   const ipEndpoint = config.ipEndpoint ?? IP_ENDPOINT;
   const language = config.language?.trim() ?? '';
   const fetchImpl = config.fetch ?? globalThis.fetch;
+  const timeout = config.timeout ?? DEFAULT_TIMEOUT;
+  const retries = config.retries ?? DEFAULT_RETRIES;
+  const now = config.now ?? (() => Date.now());
+
+  const requestOptions = (url: URL, signal: AbortSignal | undefined, operation: Operation) => ({
+    fetch: fetchImpl,
+    url,
+    signal,
+    timeout,
+    retries,
+    retryDelay: config.retryDelay,
+    networkError: {
+      code: 'PROVIDER_UNAVAILABLE',
+      message: operation === 'ip' ? 'IP lookup request failed' : 'Reverse geocoding request failed',
+    },
+    badResponseError: {
+      code: 'PROVIDER_BAD_RESPONSE',
+      message: operation === 'ip' ? 'IP lookup returned invalid JSON' : 'Reverse geocoding returned invalid JSON',
+    },
+    timeoutError: {
+      code: 'PROVIDER_TIMEOUT',
+      message: operation === 'ip' ? 'IP lookup timed out' : 'Reverse geocoding request timed out',
+    },
+    httpError: (status: number): LocationError => httpError(status, operation),
+  });
 
   const addParams = (url: URL): URL => {
     url.searchParams.set('apiKey', key);
@@ -153,7 +152,7 @@ export const geoapify = (config: GeoapifyConfig): ReverseAdapter => {
     url.searchParams.set('type', TYPE_FOR_LEVEL[level]);
     url.searchParams.set('format', 'json');
 
-    const fetched = await requestJson(fetchImpl, { url, signal, operation: 'reverse' });
+    const fetched = await requestJson(requestOptions(url, signal, 'reverse'));
 
     if (!fetched.ok) {
       return fetched;
@@ -193,16 +192,14 @@ export const geoapify = (config: GeoapifyConfig): ReverseAdapter => {
     });
   };
 
-  const reverseIp = async ({
+  const lookupIp = async ({
     signal,
   }: {
     readonly signal?: AbortSignal | undefined;
   }): Promise<Result<ReverseResult, LocationError>> => {
-    const fetched = await requestJson(fetchImpl, {
-      url: addParams(new URL(ipEndpoint)),
-      signal,
-      operation: 'ip',
-    });
+    const fetched = await requestJson(
+      requestOptions(addParams(new URL(ipEndpoint)), signal, 'ip'),
+    );
 
     if (!fetched.ok) {
       return fetched;
@@ -232,6 +229,11 @@ export const geoapify = (config: GeoapifyConfig): ReverseAdapter => {
 
     return ok({ ...normalized, ...(position !== undefined ? { position } : {}) });
   };
+
+  const reverseIp = cacheResult(lookupIp, {
+    ttl: config.ipCacheTtl ?? DEFAULT_IP_CACHE_TTL,
+    now,
+  });
 
   return {
     id: 'geoapify',

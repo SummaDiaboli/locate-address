@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>locate-address demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem auto;
+        max-width: 40rem;
+        padding: 0 1rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.75rem;
+      }
+
+      input {
+        box-sizing: border-box;
+        display: block;
+        margin-top: 0.25rem;
+        padding: 0.5rem;
+        width: 100%;
+      }
+
+      button {
+        cursor: pointer;
+        margin-top: 0.5rem;
+        padding: 0.6rem 1rem;
+      }
+
+      pre {
+        background: #f4f4f5;
+        overflow-x: auto;
+        padding: 0.75rem;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>locate-address</h1>
+    <p>One button fills the form from your browser location. Nothing is requested on page load.</p>
+
+    <form>
+      <label>Country code <input name="countryCode" autocomplete="country" /></label>
+      <label>Region <input name="region" autocomplete="address-level1" /></label>
+      <label>City <input name="city" autocomplete="address-level2" /></label>
+      <label>Postcode <input name="postcode" autocomplete="postal-code" /></label>
+      <label>Street <input name="street" autocomplete="street-address" /></label>
+      <label>Latitude <input name="lat" /></label>
+      <label>Longitude <input name="lon" /></label>
+      <label>Accuracy (m) <input name="accuracy" /></label>
+    </form>
+
+    <button id="locate" type="button">Fill my location</button>
+    <pre id="status">idle</pre>
+
+    <script type="module">
+      import { createDefaultLocator } from '../../src/index.ts';
+      import { bind } from '../../src/dom/index.ts';
+
+      const locator = createDefaultLocator({ level: 'city' });
+      const status = document.querySelector('#status');
+      const button = document.querySelector('#locate');
+
+      const render = (next) => {
+        if (next.state === 'idle') {
+          status.textContent = 'idle';
+          return;
+        }
+
+        if (next.state === 'locating') {
+          status.textContent = 'Locating…';
+          return;
+        }
+
+        if (next.state === 'error') {
+          status.textContent = `${next.error.code}: ${next.error.message}`;
+          return;
+        }
+
+        const { source, confidence, warnings, actualLevel } = next.result;
+        status.textContent = [
+          `Found ${actualLevel} via ${source} (confidence: ${confidence})`,
+          ...warnings,
+        ].join('\n');
+      };
+
+      if (button !== null) {
+        bind(
+          button,
+          locator,
+          {
+            countryCode: '[name="countryCode"]',
+            region: '[name="region"]',
+            city: '[name="city"]',
+            postcode: '[name="postcode"]',
+            street: '[name="street"]',
+            lat: '[name="lat"]',
+            lon: '[name="lon"]',
+            accuracy: '[name="accuracy"]',
+          },
+          { onStatus: render },
+        );
+      }
+    </script>
+  </body>
+</html>

@@ -6,6 +6,8 @@ Keyless by default. Adapters are pluggable, so deeper coverage can be added with
 
 > Status: early development.
 
+[![CI](https://github.com/SummaDiaboli/locate-address/actions/workflows/ci.yml/badge.svg)](https://github.com/SummaDiaboli/locate-address/actions/workflows/ci.yml)
+
 ## Install
 
 ```sh
@@ -225,7 +227,15 @@ npm run typecheck
 npm run build
 ```
 
-Coverage thresholds are 90% for statements, branches, functions, and lines.
+Coverage thresholds are 90% for statements, branches, functions, and lines. CI runs typecheck, tests, build, and coverage on pushes and pull requests.
+
+### Demo and manual smoke test
+
+```sh
+npm run demo
+```
+
+Open the printed Vite URL and click **Fill my location**. `localhost` is a secure context for browser geolocation; a deployed demo needs HTTPS. For a live Geoapify check, use a real key restricted by HTTP referrer/origin and pass `geoapify({ apiKey })` as the locator adapter.
 
 ## License
 

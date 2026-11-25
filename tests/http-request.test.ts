@@ -12,6 +12,12 @@ const response = (status: number, body: unknown = { value: 1 }): Response =>
     json: async () => body,
   }) as unknown as Response;
 
+const retryAfterResponse = (value: string): Response =>
+  ({
+    ...response(429),
+    headers: new Headers({ 'Retry-After': value }),
+  }) as unknown as Response;
+
 const networkError: LocationError = { code: 'PROVIDER_UNAVAILABLE', message: 'offline' };
 const badResponseError: LocationError = { code: 'PROVIDER_BAD_RESPONSE', message: 'bad json' };
 const timeoutError: LocationError = { code: 'PROVIDER_TIMEOUT', message: 'timed out' };
@@ -72,6 +78,17 @@ describe('requestJson', () => {
     expect(result).toEqual(err(timeoutError));
   });
 
+  it('rejects an already-aborted request before fetching', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const fetchMock = vi.fn(async () => response(200));
+
+    expect(
+      await requestJson({ ...baseOptions, fetch: fetchMock, signal: controller.signal }),
+    ).toEqual(err(abortError));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('maps caller aborts', async () => {
     const controller = new AbortController();
     const fetchMock = vi.fn(
@@ -89,6 +106,37 @@ describe('requestJson', () => {
     controller.abort();
 
     expect(await pending).toEqual(err(abortError));
+  });
+
+  it('respects numeric and date Retry-After headers', async () => {
+    for (const value of ['0', new Date(Date.now() - 1_000).toUTCString()]) {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(retryAfterResponse(value))
+        .mockResolvedValueOnce(response(200));
+
+      const result = await requestJson({ ...baseOptions, fetch: fetchMock, retries: 1 });
+
+      expect(result).toEqual(ok({ value: 1 }));
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  it('aborts while waiting before a retry', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn(async () => response(503));
+    const pending = requestJson({
+      ...baseOptions,
+      fetch: fetchMock,
+      retries: 1,
+      retryDelay: () => 10_000,
+      signal: controller.signal,
+    });
+    const timer = setTimeout(() => controller.abort(), 0);
+
+    expect(await pending).toEqual(err(abortError));
+    expect(fetchMock).toHaveBeenCalledOnce();
+    clearTimeout(timer);
   });
 
   it('retries rate limits and server errors', async () => {

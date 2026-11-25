@@ -81,6 +81,7 @@ export interface ResolvedLocation extends ReverseResult {
   readonly lat: number;
   readonly lon: number;
   readonly accuracy: number;
+  readonly timestamp: number;
   readonly source: 'gps' | 'ip';
   readonly requestedLevel: Level;
   readonly confidence: 'high' | 'medium' | 'low';

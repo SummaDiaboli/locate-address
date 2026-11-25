@@ -61,7 +61,31 @@ if (button) {
 }
 ```
 
-By default, existing user input is preserved. Use `overwrite: 'always'` to replace it. Readonly and disabled fields are skipped. Calling `unbind()` removes the click listener.
+By default, existing user input is preserved. Use `overwrite: 'always'` to replace it. Readonly and disabled fields are skipped. Calling `unbind()` removes the click listener. `onStatus` receives `idle` immediately at bind time, then `locating`, `done`, or `error`.
+
+### React
+
+```ts
+import { useLocateAddress } from 'locate-address/react';
+
+const { locate, status, result, error, bind } = useLocateAddress({ level: 'city' });
+
+// Manual use:
+await locate();
+
+// Or bind a button and keep hook state in sync:
+const bound = bind(button, { city: '[name="city"]' });
+```
+
+### Vue
+
+```ts
+import { useLocateAddress } from 'locate-address/vue';
+
+const { locate, status, result, error, bind } = useLocateAddress({ level: 'city' });
+```
+
+Vue returns `status`, `result`, and `error` as refs. Both wrappers are thin layers over the same locator and DOM binder. React and Vue are optional peer dependencies.
 
 ## Address depth
 
@@ -182,6 +206,8 @@ A successful `locate()` returns a `ResolvedLocation`:
 ```
 
 Failures return `{ ok: false, error: { code, message } }`. Common codes include `PERMISSION_DENIED`, `POSITION_UNAVAILABLE`, `TIMEOUT`, `STALE_FIX`, `INVALID_COORDINATES`, `ABORTED`, `GEOLOCATION_UNAVAILABLE`, `EMPTY_RESPONSE`, `PROVIDER_INVALID_KEY`, and `PROVIDER_RATE_LIMITED`.
+
+The root export also includes `isOk`, `isErr`, `map`, `mapErr`, `flatMap`, and `unwrapOr` for working with `Result` values.
 
 ## Browser notes
 

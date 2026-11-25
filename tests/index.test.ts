@@ -1,4 +1,18 @@
-import { bigDataCloud, createDefaultLocator, createLocator, geoapify, LEVELS } from '../src/index';
+import {
+  bigDataCloud,
+  createDefaultLocator,
+  createLocator,
+  err,
+  flatMap,
+  geoapify,
+  isErr,
+  isOk,
+  LEVELS,
+  map,
+  mapErr,
+  ok,
+  unwrapOr,
+} from '../src/index';
 import type { GetPosition, RawPosition } from '../src/types';
 
 const raw: RawPosition = {
@@ -27,6 +41,15 @@ describe('public API', () => {
     expect(bigDataCloud().id).toBe('bigdatacloud');
     expect(geoapify({ apiKey: 'test-key' }).id).toBe('geoapify');
     expect(LEVELS).toContain('city');
+  });
+
+  it('exposes the Result helpers', () => {
+    expect(isOk(ok(1))).toBe(true);
+    expect(isErr(err('bad'))).toBe(true);
+    expect(map((value: number) => value + 1)(ok(1))).toEqual(ok(2));
+    expect(mapErr((error: string) => error.toUpperCase())(err('bad'))).toEqual(err('BAD'));
+    expect(flatMap((value: number) => ok(value * 2))(ok(2))).toEqual(ok(4));
+    expect(unwrapOr(0)(ok(3))).toBe(3);
   });
 
   it('wires browser geolocation and BigDataCloud by default', async () => {

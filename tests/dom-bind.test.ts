@@ -116,6 +116,17 @@ describe('bind', () => {
     ).resolves.toMatchObject({ ok: true });
   });
 
+  it('emits an idle status when bound', () => {
+    const button = document.createElement('button');
+    const statuses: string[] = [];
+
+    bind(button, locatorWith(result), { city: '[name="city"]' }, {
+      onStatus: (status) => statuses.push(status.state),
+    });
+
+    expect(statuses).toEqual(['idle']);
+  });
+
   it('reports status transitions and does not fill on failure', async () => {
     const city = input('city');
     const button = document.createElement('button');
@@ -126,7 +137,7 @@ describe('bind', () => {
       onStatus: (status) => statuses.push(status.state),
     }).trigger();
 
-    expect(statuses).toEqual(['locating', 'error']);
+    expect(statuses).toEqual(['idle', 'locating', 'error']);
     expect(city.value).toBe('');
   });
 

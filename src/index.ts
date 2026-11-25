@@ -13,7 +13,17 @@ export {
   type LocatorConfig,
 } from './core/locate';
 export { browserGetPosition } from './platform/browser-position';
-export { err, ok, type Result } from './result';
+export {
+  err,
+  flatMap,
+  isErr,
+  isOk,
+  map,
+  mapErr,
+  ok,
+  unwrapOr,
+  type Result,
+} from './result';
 export {
   LEVELS,
   type AddressFields,

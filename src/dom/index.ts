@@ -87,6 +87,8 @@ export const bind = (
 
   const emit = (status: BindStatus): void => options.onStatus?.(status);
 
+  emit({ state: 'idle' });
+
   const fill = (result: ResolvedLocation): void => {
     (Object.keys(fields) as readonly (keyof FieldMap)[]).forEach((key) => {
       const selector = fields[key];

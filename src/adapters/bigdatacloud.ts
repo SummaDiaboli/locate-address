@@ -99,7 +99,17 @@ export const bigDataCloud = (config: BigDataCloudConfig = {}): ReverseAdapter =>
       return err({ code: 'EMPTY_RESPONSE', message: 'No address information was returned' });
     }
 
-    return ok(normalizeAddress(raw, level));
+    const normalized = normalizeAddress(raw, level);
+
+    if (latitude !== undefined) {
+      return ok(normalized);
+    }
+
+    const data = isRecord(body) ? body : {};
+    const lat = typeof data.latitude === 'number' && Number.isFinite(data.latitude) ? data.latitude : undefined;
+    const lon = typeof data.longitude === 'number' && Number.isFinite(data.longitude) ? data.longitude : undefined;
+
+    return ok(lat !== undefined && lon !== undefined ? { ...normalized, position: { lat, lon } } : normalized);
   };
 
   return {

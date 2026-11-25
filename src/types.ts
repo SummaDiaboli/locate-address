@@ -25,6 +25,15 @@ export interface RawPosition {
   readonly timestamp: number;
 }
 
+export interface GetPositionOptions {
+  readonly enableHighAccuracy: boolean;
+  readonly timeout: number;
+  readonly maximumAge: number;
+  readonly signal: AbortSignal | undefined;
+}
+
+export type GetPosition = (options: GetPositionOptions) => Promise<RawPosition>;
+
 export interface AddressFields {
   readonly countryCode?: string;
   readonly region?: string;
@@ -38,7 +47,7 @@ export interface ReverseRequest {
   readonly lat: number;
   readonly lon: number;
   readonly level: Level;
-  readonly signal?: AbortSignal;
+  readonly signal?: AbortSignal | undefined;
 }
 
 export interface RawAddress {
@@ -55,8 +64,9 @@ export interface RawAddress {
 export interface ReverseResult {
   readonly fields: AddressFields;
   readonly actualLevel: Level;
-  readonly distanceMeters?: number;
-  readonly confidenceScore?: number;
+  readonly distanceMeters?: number | undefined;
+  readonly confidenceScore?: number | undefined;
+  readonly position?: { readonly lat: number; readonly lon: number } | undefined;
 }
 
 export interface ReverseAdapter {
@@ -64,7 +74,7 @@ export interface ReverseAdapter {
   readonly maxLevel: Level;
   readonly supports: readonly Level[];
   readonly reverse: (request: ReverseRequest) => Promise<Result<ReverseResult, LocationError>>;
-  readonly reverseIp?: (request: { readonly signal?: AbortSignal }) => Promise<Result<ReverseResult, LocationError>>;
+  readonly reverseIp?: (request: { readonly signal?: AbortSignal | undefined }) => Promise<Result<ReverseResult, LocationError>>;
 }
 
 export interface ResolvedLocation extends ReverseResult {

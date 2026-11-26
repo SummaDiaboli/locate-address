@@ -57,6 +57,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "demo": "vite --config examples/basic/vite.config.ts --host",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:live": "node scripts/smoke.mjs --live",
     "prepublishOnly": "npm run build && npm test"
   },
   "peerDependencies": {
@@ -78,6 +80,7 @@
     "@vitest/coverage-v8": "^5.1.1",
     "fast-check": "^4.11.0",
     "jsdom": "^29.1.1",
+    "playwright": "^1.65.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",

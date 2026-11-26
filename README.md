@@ -225,17 +225,34 @@ npm test
 npm run test:coverage
 npm run typecheck
 npm run build
+npm run smoke
 ```
 
-Coverage thresholds are 90% for statements, branches, functions, and lines. CI runs typecheck, tests, build, and coverage on pushes and pull requests.
+Install the browser once before the first smoke run:
 
-### Demo and manual smoke test
+```sh
+npx playwright install chromium
+```
+
+Coverage thresholds are 90% for statements, branches, functions, and lines. CI runs typecheck, tests, build, coverage, and the deterministic headless smoke test on pushes and pull requests.
+
+### Demo and headless smoke test
 
 ```sh
 npm run demo
 ```
 
-Open the printed Vite URL and click **Fill my location**. `localhost` is a secure context for browser geolocation; a deployed demo needs HTTPS. For a live Geoapify check, use a real key restricted by HTTP referrer/origin and pass `geoapify({ apiKey })` as the locator adapter.
+Open the printed Vite URL and click **Fill my location**. `localhost` is a secure context for browser geolocation; a deployed demo needs HTTPS.
+
+`npm run smoke` starts the demo in a headless Chromium browser, injects a mock GPS fix, mocks the provider response, and verifies status transitions, DOM autofill, no page-load lookup, and IP fallback. `npm run smoke:live` performs the same checks against live providers using guessed Berlin coordinates.
+
+For a live Geoapify check, supply a referrer-restricted key without printing it in the shell history:
+
+```sh
+GEOAPIFY_KEY=your-key npm run smoke:live
+```
+
+The demo also accepts that key internally via `globalThis.__LOCATE_ADDRESS_GEOAPIFY_KEY__`; it is not stored in the page or source.
 
 ## License
 

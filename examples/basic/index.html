@@ -58,10 +58,15 @@
     <pre id="status">idle</pre>
 
     <script type="module">
-      import { createDefaultLocator } from '../../src/index.ts';
+      import { createDefaultLocator, geoapify } from '../../src/index.ts';
       import { bind } from '../../src/dom/index.ts';
 
-      const locator = createDefaultLocator({ level: 'city' });
+      const apiKey = globalThis.__LOCATE_ADDRESS_GEOAPIFY_KEY__;
+      const adapter = typeof apiKey === 'string' && apiKey !== '' ? geoapify({ apiKey }) : undefined;
+      const locator = createDefaultLocator({
+        level: 'city',
+        ...(adapter === undefined ? {} : { adapter }),
+      });
       const status = document.querySelector('#status');
       const button = document.querySelector('#locate');
 
